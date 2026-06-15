@@ -212,6 +212,9 @@ export class App {
   currentMode = signal<'query' | 'fix'>('query');
   schemaList = signal<Table[]>(JSON.parse(JSON.stringify(PRESET_SCHEMAS['ecommerce'])));
   
+  // Abort controller for cancellation
+  private currentAbortController: AbortController | null = null;
+  
   // Dialog/Adding form states
   selectedTableIndex = signal<number>(0);
   showAddTableModal = signal<boolean>(false);
@@ -421,6 +424,7 @@ export class App {
 
   // Main Copilot action trigger
   async executeCopilot() {
+    if (this.isLoading()) return;
     this.copilotResponse.set(null);
     this.apiError.set(null);
 
@@ -456,13 +460,20 @@ export class App {
 
     this.isLoading.set(true);
 
+    // Cancel any ongoing compilation request
+    if (this.currentAbortController) {
+      this.currentAbortController.abort();
+    }
+    this.currentAbortController = new AbortController();
+
     try {
       const response = await fetch('/api/copilot', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(bodyPayload)
+        body: JSON.stringify(bodyPayload),
+        signal: this.currentAbortController.signal
       });
 
       const data = await response.json();
@@ -476,10 +487,26 @@ export class App {
 
     } catch (err: unknown) {
       const errorObj = err as Error;
+      if (errorObj.name === 'AbortError') {
+        console.log('Remote copilot execution cancelled by user.');
+        this.apiError.set('Request cancelled. Generation was stopped successfully.');
+        return;
+      }
       console.error('Remote copilot failed:', errorObj);
       this.apiError.set(errorObj.message || 'Connecting to Gemini Copilot service failed. Please check your network and API credentials.');
     } finally {
       this.isLoading.set(false);
+      this.currentAbortController = null;
+    }
+  }
+
+  // Method to stop ongoing request when user changes their mind
+  haltCopilot() {
+    if (this.currentAbortController) {
+      this.currentAbortController.abort();
+      this.currentAbortController = null;
+      this.isLoading.set(false);
+      this.apiError.set('Request cancelled. Generation was stopped successfully.');
     }
   }
 }

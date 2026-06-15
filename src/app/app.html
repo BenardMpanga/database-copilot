@@ -423,12 +423,14 @@
               </div>
               <div class="flex items-end">
                 <button 
-                  type="submit"
-                  [disabled]="isLoading() || queryForm.invalid"
-                  class="w-full h-10 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 font-semibold text-white text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] cursor-pointer">
+                  type="button"
+                  (click)="isLoading() ? haltCopilot() : executeCopilot()"
+                  [disabled]="!isLoading() && queryForm.invalid"
+                  class="w-full h-10 rounded-xl font-semibold text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] cursor-pointer"
+                  [class]="isLoading() ? 'bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/80 text-rose-300' : 'bg-blue-600 hover:bg-blue-500 text-white disabled:bg-slate-800 disabled:text-slate-600'">
                   @if (isLoading()) {
-                    <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                    <span>CO-PILOT CONSTRUCTING...</span>
+                    <mat-icon class="text-sm animate-pulse text-rose-400">stop_circle</mat-icon>
+                    <span>STOP GENERATION</span>
                   } @else {
                     <mat-icon class="text-sm font-bold">bolt</mat-icon>
                     <span>GENERATE OPTIMIZED SQL</span>
@@ -497,12 +499,14 @@
               </div>
               <div class="flex items-end">
                 <button 
-                  type="submit"
-                  [disabled]="isLoading() || fixForm.invalid"
-                  class="w-full h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 disabled:bg-slate-800 disabled:text-slate-600 font-semibold text-white text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] cursor-pointer">
+                  type="button"
+                  (click)="isLoading() ? haltCopilot() : executeCopilot()"
+                  [disabled]="!isLoading() && fixForm.invalid"
+                  class="w-full h-10 rounded-xl font-semibold text-white text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] cursor-pointer"
+                  [class]="isLoading() ? 'bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/80 text-rose-300' : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 disabled:bg-slate-800 disabled:text-slate-600'">
                   @if (isLoading()) {
-                    <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                    <span>DIAGNOSING MISMATCH...</span>
+                    <mat-icon class="text-sm animate-pulse text-rose-400">stop_circle</mat-icon>
+                    <span>STOP GENERATION</span>
                   } @else {
                     <mat-icon class="text-sm font-bold">healing</mat-icon>
                     <span>DIAGNOSE & REWRITE SQL</span>
@@ -529,6 +533,15 @@
             <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400">Gemini Reasoning Active</h4>
             <p class="text-xs text-slate-500 mt-1.5 max-w-sm leading-relaxed">Evaluating joint associations, matching column definitions, checking constraints, and compiling optimized query plans.</p>
           </div>
+          <button 
+            type="button"
+            (click)="haltCopilot()"
+            class="px-4 py-2 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/80 text-rose-300 text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-sm active:scale-[0.98] cursor-pointer"
+            id="stop-generation-indicator-btn"
+          >
+            <mat-icon class="text-xs">stop_circle</mat-icon>
+            <span>Stop Generation</span>
+          </button>
         </div>
       }
 
