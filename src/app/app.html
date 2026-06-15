@@ -201,6 +201,52 @@
           </button>
         </div>
 
+        <!-- Table Deletion Warning -->
+        @if (tableRemoveWarning(); as warning) {
+          <div class="p-3 bg-amber-950/40 border border-amber-800/80 rounded-xl flex items-start gap-2.5">
+            <mat-icon class="text-amber-400 text-sm mt-0.5">warning</mat-icon>
+            <div class="flex-1">
+              <p class="text-[11px] text-amber-200 leading-relaxed">{{ warning }}</p>
+            </div>
+            <button 
+              type="button"
+              (click)="tableRemoveWarning.set(null)"
+              class="text-amber-450 hover:text-amber-300 cursor-pointer">
+              <mat-icon class="text-xs">close</mat-icon>
+            </button>
+          </div>
+        }
+
+        <!-- Table Deletion Confirmation -->
+        @if (tablePendingDelete() !== null && schemaList()[tablePendingDelete()!]) {
+          <div class="p-4 bg-rose-950/40 border border-rose-800/80 rounded-xl space-y-3 shadow-md">
+            <div class="flex items-start gap-2.5">
+              <mat-icon class="text-rose-400 text-sm mt-0.5">delete_forever</mat-icon>
+              <div>
+                <h3 class="text-xs font-semibold text-rose-200">Delete Table "{{ schemaList()[tablePendingDelete()!].name }}"?</h3>
+                <p class="text-[10px] text-rose-300/80 leading-relaxed mt-1">
+                  This will permanently drop the table "{{ schemaList()[tablePendingDelete()!].name }}" and all of its associated column definition schemas. Ongoing queries referencing this table will fail to compile.
+                </p>
+              </div>
+            </div>
+            <div class="flex justify-end gap-2 text-xs pt-1">
+              <button 
+                type="button" 
+                (click)="cancelDeleteTable()"
+                class="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 text-slate-350 border border-slate-800 cursor-pointer">
+                Keep Table
+              </button>
+              <button 
+                type="button"
+                (click)="confirmDeleteTable()"
+                class="px-2.5 py-1.5 rounded-lg bg-rose-700 hover:bg-rose-600 text-white font-semibold cursor-pointer"
+                id="btn-confirm-delete-table">
+                Delete Permanently
+              </button>
+            </div>
+          </div>
+        }
+
         <!-- Interactive List of Tables -->
         <div class="flex flex-wrap gap-2">
           @for (table of schemaList(); track table.name; let idx = $index) {
@@ -216,8 +262,8 @@
               <span class="font-mono text-[9px] text-slate-500">#{{ idx+1 }}</span>
               <span class="font-mono">{{ table.name }}</span>
               <span 
-                (click)="deleteTable(idx); $event.stopPropagation()"
-                (keydown.enter)="deleteTable(idx); $event.stopPropagation()"
+                (click)="initiateDeleteTable(idx); $event.stopPropagation()"
+                (keydown.enter)="initiateDeleteTable(idx); $event.stopPropagation()"
                 tabindex="0"
                 class="hover:text-red-400 text-slate-500 transition-colors cursor-pointer ml-1 p-0.5 rounded focus:outline-none focus:ring-1 focus:ring-red-400/50"
                 title="Delete Table">

@@ -269,6 +269,8 @@ export class App {
   showAddQuestionInput = signal<boolean>(false);
   datasetPendingDelete = signal<Dataset | null>(null);
   datasetRemoveWarning = signal<string | null>(null);
+  tablePendingDelete = signal<number | null>(null);
+  tableRemoveWarning = signal<string | null>(null);
   copySuccess = signal<string | null>(null);
 
   // Dynamic UI variables
@@ -639,17 +641,42 @@ export class App {
     this.updateActiveDatasetTables([...list]);
   }
 
-  // Schema Modifier: Delete Table
-  deleteTable(tableIndex: number) {
+  // Schema Modifier: Initiate Delete Table
+  initiateDeleteTable(tableIndex: number) {
+    this.tablePendingDelete.set(null);
+    this.tableRemoveWarning.set(null);
+
     const list = this.schemaList();
     if (list.length <= 1) {
-      alert('You must have at least one table in the schema.');
+      this.tableRemoveWarning.set('You must retain at least one table in your schema.');
       return;
     }
-    
-    const updated = list.filter((_, i) => i !== tableIndex);
+
+    this.tablePendingDelete.set(tableIndex);
+  }
+
+  confirmDeleteTable() {
+    const idx = this.tablePendingDelete();
+    if (idx === null) return;
+
+    const list = this.schemaList();
+    if (list.length <= 1) {
+      this.tableRemoveWarning.set('You must retain at least one table in your schema.');
+      this.tablePendingDelete.set(null);
+      return;
+    }
+
+    const updated = list.filter((_, i) => i !== idx);
     this.updateActiveDatasetTables(updated);
     this.selectedTableIndex.set(0);
+
+    this.tablePendingDelete.set(null);
+    this.tableRemoveWarning.set(null);
+  }
+
+  cancelDeleteTable() {
+    this.tablePendingDelete.set(null);
+    this.tableRemoveWarning.set(null);
   }
 
   // Main Copilot action trigger
