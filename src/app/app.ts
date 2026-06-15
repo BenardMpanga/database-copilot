@@ -199,6 +199,15 @@ const PRESET_DIAGNOSTICS = [
   }
 ];
 
+export interface Dataset {
+  id: string;
+  label: string;
+  icon: string;
+  tables: Table[];
+  questions: string[];
+  isCustom?: boolean;
+}
+
 @Component({
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'app-root',
@@ -207,10 +216,47 @@ const PRESET_DIAGNOSTICS = [
   styleUrl: './app.css',
 })
 export class App {
+  // Load from localStorage or use defaults
+  private getInitialDatasets(): Dataset[] {
+    try {
+      const saved = localStorage.getItem('db_copilot_datasets');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (e) {
+      console.error('Failed to load datasets from localStorage', e);
+    }
+
+    return [
+      {
+        id: 'ecommerce',
+        label: 'E-Shop',
+        icon: 'shopping_cart',
+        tables: JSON.parse(JSON.stringify(PRESET_SCHEMAS['ecommerce'])),
+        questions: [...PRESET_QUESTIONS['ecommerce']]
+      },
+      {
+        id: 'saas',
+        label: 'SaaS app',
+        icon: 'business',
+        tables: JSON.parse(JSON.stringify(PRESET_SCHEMAS['saas'])),
+        questions: [...PRESET_QUESTIONS['saas']]
+      },
+      {
+        id: 'fitness',
+        label: 'Fitness',
+        icon: 'favorite',
+        tables: JSON.parse(JSON.stringify(PRESET_SCHEMAS['fitness'])),
+        questions: [...PRESET_QUESTIONS['fitness']]
+      }
+    ];
+  }
+
   // Application Modes & Tab management
-  activePreset = signal<string>('ecommerce');
+  datasets = signal<Dataset[]>(this.getInitialDatasets());
+  activePreset = signal<string>(this.getInitialDatasets()[0].id);
   currentMode = signal<'query' | 'fix'>('query');
-  schemaList = signal<Table[]>(JSON.parse(JSON.stringify(PRESET_SCHEMAS['ecommerce'])));
+  schemaList = signal<Table[]>(JSON.parse(JSON.stringify(this.getInitialDatasets()[0].tables)));
   
   // Abort controller for cancellation
   private currentAbortController: AbortController | null = null;
@@ -219,6 +265,8 @@ export class App {
   selectedTableIndex = signal<number>(0);
   showAddTableModal = signal<boolean>(false);
   showAddColumnModal = signal<boolean>(false);
+  showAddDatasetModal = signal<boolean>(false);
+  showAddQuestionInput = signal<boolean>(false);
   copySuccess = signal<string | null>(null);
 
   // Dynamic UI variables
@@ -238,7 +286,7 @@ export class App {
     dialect: new FormControl('postgresql')
   });
 
-  // Adding table & column Forms
+  // Adding table, column & dataset Forms
   newTableForm = new FormGroup({
     tableName: new FormControl('', [Validators.required, Validators.pattern('^[a-zA-Z_][a-zA-Z0-9_]*$')])
   });
@@ -252,9 +300,19 @@ export class App {
     refColumn: new FormControl('')
   });
 
+  newDatasetForm = new FormGroup({
+    datasetName: new FormControl('', [Validators.required, Validators.minLength(3), Validators.pattern('^[a-zA-Z0-9 _-]+$')]),
+    datasetIcon: new FormControl('database', [Validators.required])
+  });
+
+  newQuestionForm = new FormGroup({
+    questionText: new FormControl('', [Validators.required, Validators.minLength(5)])
+  });
+
   // Computed presets questions
   questionsForPreset = computed(() => {
-    return PRESET_QUESTIONS[this.activePreset()] || [];
+    const ds = this.datasets().find(d => d.id === this.activePreset());
+    return ds?.questions || [];
   });
 
   // Get active selected table
@@ -271,21 +329,168 @@ export class App {
   diagnosticTemplates = PRESET_DIAGNOSTICS;
 
   constructor() {
-    // Initialise question box with first preset question
-    const defaultQ = PRESET_QUESTIONS['ecommerce'][0];
+    // Initialise question box with first active preset question
+    const activeId = this.activePreset();
+    const ds = this.datasets().find(d => d.id === activeId);
+    const defaultQ = ds?.questions?.[0] || '';
     this.queryForm.patchValue({ question: defaultQ });
+  }
+
+  // Persists the current state of datasets to localStorage
+  saveDatasetsToStorage(list: Dataset[]) {
+    try {
+      localStorage.setItem('db_copilot_datasets', JSON.stringify(list));
+    } catch (e) {
+      console.error('Failed to save datasets to localStorage', e);
+    }
+  }
+
+  // Update the tables list of the currently active dataset
+  updateActiveDatasetTables(tables: Table[]) {
+    this.schemaList.set(tables);
+    const activeId = this.activePreset();
+    const updatedDatasets = this.datasets().map(ds => {
+      if (ds.id === activeId) {
+        return { ...ds, tables: JSON.parse(JSON.stringify(tables)) };
+      }
+      return ds;
+    });
+    this.datasets.set(updatedDatasets);
+    this.saveDatasetsToStorage(updatedDatasets);
+  }
+
+  // Add a fully custom user-defined dataset
+  addCustomDataset() {
+    if (this.newDatasetForm.invalid) return;
+    const name = this.newDatasetForm.value.datasetName?.trim();
+    const icon = this.newDatasetForm.value.datasetIcon || 'database';
+    if (!name) return;
+
+    // Unique dataset id
+    const id = 'custom_' + Date.now();
+    
+    // Initialise dataset with dummy users table so it starts with solid queryable content
+    const newDataset: Dataset = {
+      id,
+      label: name,
+      icon,
+      isCustom: true,
+      tables: [
+        {
+          name: 'users',
+          columns: [
+            { name: 'id', type: 'INT', isPrimaryKey: true, isForeignKey: false },
+            { name: 'username', type: 'VARCHAR(100)', isPrimaryKey: false, isForeignKey: false },
+            { name: 'created_at', type: 'TIMESTAMP', isPrimaryKey: false, isForeignKey: false }
+          ]
+        }
+      ],
+      questions: [
+        `Select all columns from users table where username is not empty.`,
+        `Retrieve list of total users count.`
+      ]
+    };
+
+    const updated = [...this.datasets(), newDataset];
+    this.datasets.set(updated);
+    this.saveDatasetsToStorage(updated);
+    
+    // Switch to newly created dataset
+    this.onPresetChange(id);
+    
+    this.showAddDatasetModal.set(false);
+    this.newDatasetForm.reset({
+      datasetName: '',
+      datasetIcon: 'database'
+    });
+  }
+
+  // Remove a dataset (either custom, or standard if other ones exist)
+  removeDataset(id: string, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    const list = this.datasets();
+    if (list.length <= 1) {
+      alert('You must have at least one active dataset.');
+      return;
+    }
+
+    const targetDataset = list.find(d => d.id === id);
+    const label = targetDataset?.label || id;
+    const confirmDelete = confirm(`Are you sure you want to delete the dataset "${label}"?`);
+    if (!confirmDelete) return;
+
+    const updated = list.filter(d => d.id !== id);
+    this.datasets.set(updated);
+    this.saveDatasetsToStorage(updated);
+
+    // If active preset has been deleted, switch to the first remaining one
+    if (this.activePreset() === id) {
+      this.onPresetChange(updated[0].id);
+    }
+  }
+
+  // Add custom template question inside the actively selected dataset
+  addCustomQuestion() {
+    if (this.newQuestionForm.invalid) return;
+    const qText = this.newQuestionForm.value.questionText?.trim();
+    if (!qText) return;
+
+    const activeId = this.activePreset();
+    const updated = this.datasets().map(ds => {
+      if (ds.id === activeId) {
+        return {
+          ...ds,
+          questions: [...ds.questions, qText]
+        };
+      }
+      return ds;
+    });
+
+    this.datasets.set(updated);
+    this.saveDatasetsToStorage(updated);
+    this.showAddQuestionInput.set(false);
+    this.newQuestionForm.reset();
+  }
+
+  // Delete matching sample prompt in active preset
+  deleteQuestion(qIdx: number, event?: Event) {
+    if (event) {
+      event.stopPropagation();
+    }
+    
+    const activeId = this.activePreset();
+    const updated = this.datasets().map(ds => {
+      if (ds.id === activeId) {
+        const questionsCopy = [...ds.questions];
+        questionsCopy.splice(qIdx, 1);
+        return {
+          ...ds,
+          questions: questionsCopy
+        };
+      }
+      return ds;
+    });
+
+    this.datasets.set(updated);
+    this.saveDatasetsToStorage(updated);
   }
 
   // Handle Preset Switching
   onPresetChange(newPreset: string) {
     this.activePreset.set(newPreset);
-    this.schemaList.set(JSON.parse(JSON.stringify(PRESET_SCHEMAS[newPreset])));
+    const ds = this.datasets().find(d => d.id === newPreset);
+    if (ds) {
+      this.schemaList.set(JSON.parse(JSON.stringify(ds.tables)));
+    }
     this.selectedTableIndex.set(0);
     this.copilotResponse.set(null);
     this.apiError.set(null);
 
     // Auto-fill active preset question
-    const defaultQ = PRESET_QUESTIONS[newPreset]?.[0] || '';
+    const defaultQ = ds?.questions?.[0] || '';
     this.queryForm.patchValue({ question: defaultQ });
   }
 
@@ -342,7 +547,7 @@ export class App {
     };
 
     const updated = [...this.schemaList(), newTable];
-    this.schemaList.set(updated);
+    this.updateActiveDatasetTables(updated);
     this.selectedTableIndex.set(updated.length - 1);
     this.showAddTableModal.set(false);
     this.newTableForm.reset();
@@ -381,7 +586,7 @@ export class App {
     };
 
     targetTable.columns.push(newCol);
-    this.schemaList.set([...list]);
+    this.updateActiveDatasetTables([...list]);
     this.showAddColumnModal.set(false);
     this.newColumnForm.reset({
       colName: '',
@@ -406,7 +611,7 @@ export class App {
     }
 
     table.columns.splice(colIndex, 1);
-    this.schemaList.set([...list]);
+    this.updateActiveDatasetTables([...list]);
   }
 
   // Schema Modifier: Delete Table
@@ -418,7 +623,7 @@ export class App {
     }
     
     const updated = list.filter((_, i) => i !== tableIndex);
-    this.schemaList.set(updated);
+    this.updateActiveDatasetTables(updated);
     this.selectedTableIndex.set(0);
   }
 
