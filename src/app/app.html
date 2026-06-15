@@ -1,0 +1,709 @@
+<div class="min-h-screen bg-[#0f172a] text-slate-200 flex flex-col font-sans selection:bg-blue-500/30 selection:text-blue-400">
+  
+  <!-- Header Navbar of DatabaseCopilot -->
+  <header class="h-14 border-b border-slate-800 flex items-center justify-between px-6 bg-[#0f172a]/80 backdrop-blur-sm sticky top-0 z-40 shrink-0">
+    <div class="max-w-7xl w-full mx-auto flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/10">
+          <mat-icon class="text-white text-base leading-none flex items-center justify-center">storage</mat-icon>
+        </div>
+        <div>
+          <h1 class="text-base font-semibold tracking-tight text-white flex items-center">
+            DatabaseCopilot <span class="text-blue-500 text-[10px] font-mono ml-2 px-1.5 py-0.2 border border-blue-500/30 rounded select-none">v0.5-beta</span>
+          </h1>
+        </div>
+      </div>
+      
+      <!-- Right Status Info -->
+      <div class="flex items-center gap-4 text-xs">
+        <div class="flex items-center gap-2 px-3 py-1 bg-slate-800 rounded-full border border-slate-700">
+          <span class="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]"></span>
+          <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400">System Ready</span>
+        </div>
+        <div class="hidden sm:flex items-center gap-1.5 text-slate-500 font-mono text-[10px]">
+          <span class="text-slate-600">Dialect:</span>
+          <span class="text-blue-400 uppercase">PostgreSQL / SQL</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    
+    <!-- LEFT PANEL: Scheme Workspace (col-span-5) -->
+    <section id="schema-panel" class="lg:col-span-5 space-y-6">
+      
+      <!-- Preset Schema Selection -->
+      <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <h2 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4 flex items-center justify-between">
+          <span>Active Datasets</span>
+          <mat-icon class="text-slate-500 text-sm">dashboard</mat-icon>
+        </h2>
+        
+        <div class="grid grid-cols-3 gap-2">
+          <button 
+            (click)="onPresetChange('ecommerce')"
+            class="flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-300 cursor-pointer"
+            [class.bg-blue-500\/10]="activePreset() === 'ecommerce'"
+            [class.text-blue-400]="activePreset() === 'ecommerce'"
+            [class.border-blue-500\/30]="activePreset() === 'ecommerce'"
+            [class.bg-slate-900\/65]="activePreset() !== 'ecommerce'"
+            [class.border-slate-800]="activePreset() !== 'ecommerce'"
+            [class.hover:bg-slate-800\/80]="activePreset() !== 'ecommerce'">
+            <mat-icon class="mb-1 text-sm">shopping_cart</mat-icon>
+            <span class="text-[11px] font-medium">E-Shop</span>
+          </button>
+          
+          <button 
+            (click)="onPresetChange('saas')"
+            class="flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-300 cursor-pointer"
+            [class.bg-blue-500\/10]="activePreset() === 'saas'"
+            [class.text-blue-400]="activePreset() === 'saas'"
+            [class.border-blue-500\/30]="activePreset() === 'saas'"
+            [class.bg-slate-900\/65]="activePreset() !== 'saas'"
+            [class.border-slate-800]="activePreset() !== 'saas'"
+            [class.hover:bg-slate-800\/80]="activePreset() !== 'saas'">
+            <mat-icon class="mb-1 text-sm">business</mat-icon>
+            <span class="text-[11px] font-medium">SaaS app</span>
+          </button>
+          
+          <button 
+            (click)="onPresetChange('fitness')"
+            class="flex flex-col items-center justify-center p-3 rounded-xl border text-center transition-all duration-300 cursor-pointer"
+            [class.bg-blue-500\/10]="activePreset() === 'fitness'"
+            [class.text-blue-400]="activePreset() === 'fitness'"
+            [class.border-blue-500\/30]="activePreset() === 'fitness'"
+            [class.bg-slate-900\/65]="activePreset() !== 'fitness'"
+            [class.border-slate-800]="activePreset() !== 'fitness'"
+            [class.hover:bg-slate-800\/80]="activePreset() !== 'fitness'">
+            <mat-icon class="mb-1 text-sm">favorite</mat-icon>
+            <span class="text-[11px] font-medium">Fitness</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Schema Browser -->
+      <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800/80 pb-3">
+          <div>
+            <h2 class="text-xs font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
+              <mat-icon class="text-blue-400 text-base leading-none">schema</mat-icon>
+              <span>Schema Explorer</span>
+            </h2>
+            <p class="text-[10px] text-slate-400 font-mono mt-1">Ground truth context tables</p>
+          </div>
+          <button 
+            (click)="showAddTableModal.set(true)"
+            class="flex items-center gap-1 text-[11px] font-medium text-blue-400 hover:text-blue-300 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 px-2.5 py-1.5 rounded-lg transition-all cursor-pointer">
+            <mat-icon class="text-xs">add</mat-icon>
+            <span>Table</span>
+          </button>
+        </div>
+
+        <!-- Interactive List of Tables -->
+        <div class="flex flex-wrap gap-2">
+          @for (table of schemaList(); track table.name; let idx = $index) {
+            <button 
+              (click)="selectedTableIndex.set(idx)"
+              class="px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 border transition-all cursor-pointer"
+              [class.bg-blue-500\/10]="selectedTableIndex() === idx"
+              [class.text-blue-300]="selectedTableIndex() === idx"
+              [class.border-blue-500\/30]="selectedTableIndex() === idx"
+              [class.bg-slate-900\/60]="selectedTableIndex() !== idx"
+              [class.border-slate-800/80]="selectedTableIndex() !== idx"
+              [class.hover:bg-slate-800]="selectedTableIndex() !== idx">
+              <span class="font-mono text-[9px] text-slate-500">#{{ idx+1 }}</span>
+              <span class="font-mono">{{ table.name }}</span>
+              <span 
+                (click)="deleteTable(idx); $event.stopPropagation()"
+                (keydown.enter)="deleteTable(idx); $event.stopPropagation()"
+                tabindex="0"
+                class="hover:text-red-400 text-slate-500 transition-colors cursor-pointer ml-1 p-0.5 rounded focus:outline-none focus:ring-1 focus:ring-red-400/50"
+                title="Delete Table">
+                <mat-icon class="text-[13px] w-auto.5 h-auto.5">close</mat-icon>
+              </span>
+            </button>
+          }
+        </div>
+
+        <!-- Add Custom Table Modal Form inline -->
+        @if (showAddTableModal()) {
+          <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 space-y-3 shadow-md">
+            <div class="flex items-center justify-between pb-1">
+              <h3 class="text-xs font-semibold text-white">Create New Table</h3>
+              <button (click)="showAddTableModal.set(false)" class="text-slate-500 hover:text-slate-300 cursor-pointer">
+                <mat-icon class="text-sm">close</mat-icon>
+              </button>
+            </div>
+            <form [formGroup]="newTableForm" (ngSubmit)="addCustomTable()" class="space-y-3">
+              <div>
+                <input 
+                  type="text" 
+                  formControlName="tableName"
+                  placeholder="e.g. inventory_logs, refund_receipts"
+                  class="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-lg px-3 py-2 text-xs font-mono text-white outline-none">
+                @if (newTableForm.controls.tableName.touched && newTableForm.controls.tableName.invalid) {
+                  <p class="text-[10px] text-red-400 mt-1">Must start with a letter and contain alphanumeric chars/underscores.</p>
+                }
+              </div>
+              <div class="flex justify-end gap-2 text-xs">
+                <button 
+                  type="button" 
+                  (click)="showAddTableModal.set(false)"
+                  class="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer">
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  [disabled]="newTableForm.invalid"
+                  class="px-3 py-1.5 rounded bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-semibold cursor-pointer">
+                  Add Table
+                </button>
+              </div>
+            </form>
+          </div>
+        }
+
+        <!-- Interactive Columns Schema Outline -->
+        @if (selectedTable(); as table) {
+          <div class="border border-slate-800 bg-slate-900/60 rounded-xl p-4 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold text-slate-300 font-mono font-bold">{{ table.name }}</span>
+                <span class="text-[10px] bg-slate-800 text-slate-400 font-mono px-2 py-0.5 rounded">
+                  {{ table.columns.length }} columns
+                </span>
+              </div>
+              
+              <button 
+                (click)="showAddColumnModal.set(true)"
+                class="text-[11px] text-blue-400 hover:text-blue-300 font-medium flex items-center gap-1 cursor-pointer">
+                <mat-icon class="text-sm">add_circle_outline</mat-icon>
+                <span>Add Column</span>
+              </button>
+            </div>
+
+            <!-- Add Custom Column Form inline -->
+            @if (showAddColumnModal()) {
+              <div class="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                <div class="flex items-center justify-between pb-1">
+                  <h3 class="text-xs font-semibold text-white">Create Column in <span class="text-blue-400 font-mono">"{{ table.name }}"</span></h3>
+                  <button (click)="showAddColumnModal.set(false)" class="text-slate-500 hover:text-slate-300 cursor-pointer">
+                    <mat-icon class="text-sm">close</mat-icon>
+                  </button>
+                </div>
+                
+                <form [formGroup]="newColumnForm" (ngSubmit)="addCustomColumn()" class="space-y-3">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label for="colNameInput" class="block text-[10px] text-slate-400 font-medium mb-1">Column Name</label>
+                      <input 
+                        id="colNameInput"
+                        type="text" 
+                        formControlName="colName"
+                        placeholder="e.g. tracking_sku"
+                        class="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded px-2.5 py-1.5 text-xs text-white outline-none font-mono">
+                    </div>
+                    <div>
+                      <label for="colTypeSelect" class="block text-[10px] text-slate-400 font-medium mb-1">Data Type</label>
+                      <select 
+                        id="colTypeSelect"
+                        formControlName="colType"
+                        class="w-full bg-slate-900 border border-slate-800 focus:border-blue-500 rounded px-2.5 py-1.5 text-xs text-white outline-none font-mono">
+                        <option value="INT">INT</option>
+                        <option value="VARCHAR(255)">VARCHAR(255)</option>
+                        <option value="VARCHAR(100)">VARCHAR(100)</option>
+                        <option value="DECIMAL(10,2)">DECIMAL(10,2)</option>
+                        <option value="TIMESTAMP">TIMESTAMP</option>
+                        <option value="DATE">DATE</option>
+                        <option value="BOOLEAN">BOOLEAN</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col gap-2 p-2 bg-slate-900 rounded border border-slate-800 text-xs">
+                    <label class="flex items-center gap-2 text-[11px] font-medium text-slate-300 cursor-pointer">
+                      <input type="checkbox" formControlName="isPK" class="rounded text-blue-500 accent-blue-500">
+                      <span>Primary Key (PK)</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-[11px] font-medium text-slate-300 cursor-pointer">
+                      <input type="checkbox" formControlName="isFK" class="rounded text-blue-500 accent-blue-500">
+                      <span>Foreign Key (FK)</span>
+                    </label>
+                  </div>
+
+                  @if (newColumnForm.value.isFK) {
+                    <div class="grid grid-cols-2 gap-2 p-2 bg-slate-900 rounded border border-slate-800">
+                      <div>
+                        <label for="refTableSelect" class="block text-[10px] text-slate-400 mb-1">References Table</label>
+                        <select 
+                          id="refTableSelect"
+                          formControlName="refTable"
+                          class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono outline-none">
+                          <option value="">-- Choose --</option>
+                          @for (t of schemaList(); track t.name) {
+                            <option [value]="t.name">{{ t.name }}</option>
+                          }
+                        </select>
+                      </div>
+                      <div>
+                        <label for="refColumnInput" class="block text-[10px] text-slate-400 mb-1">Column ID</label>
+                        <input 
+                          id="refColumnInput"
+                          type="text" 
+                          formControlName="refColumn"
+                          placeholder="e.g. id"
+                          class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white font-mono outline-none">
+                      </div>
+                    </div>
+                  }
+
+                  <div class="flex justify-end gap-2 text-xs">
+                    <button 
+                      type="button" 
+                      (click)="showAddColumnModal.set(false)"
+                      class="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 cursor-pointer">
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit"
+                      [disabled]="newColumnForm.invalid"
+                      class="px-2.5 py-1.5 rounded bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white font-semibold cursor-pointer">
+                      Add Column
+                    </button>
+                  </div>
+                </form>
+              </div>
+            }
+
+            <!-- Columns representation table layout -->
+            <div class="space-y-2">
+              @for (col of table.columns; track col.name; let colIdx = $index) {
+                <div class="flex items-center justify-between text-xs bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/50 hover:border-slate-800 transition-colors">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-blue-400 font-semibold">{{ col.name }}</span>
+                    <span class="text-[10px] text-slate-500 font-mono">{{ col.type }}</span>
+                    
+                    @if (col.isPrimaryKey) {
+                      <span class="text-[9px] font-mono tracking-wide px-1.5 py-0.2 bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 rounded font-semibold">
+                        PK
+                      </span>
+                    }
+                    @if (col.isForeignKey) {
+                      <span class="text-[9px] font-mono tracking-wide px-1.5 py-0.2 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded font-semibold"
+                            [title]="'References: ' + col.referenceTable + '(' + col.referenceColumn + ')'">
+                        FK ➔ {{ col.referenceTable }}
+                      </span>
+                    }
+                  </div>
+                  <button 
+                    (click)="deleteColumn(colIdx)"
+                    class="text-slate-600 hover:text-red-400 transition-colors p-0.5 cursor-pointer"
+                    title="Delete Column">
+                    <mat-icon class="text-xs">delete_outline</mat-icon>
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- SQL Dialect & Mechanics Visual Guide -->
+      <!-- SQL Dialect & Mechanics Visual Guide -->
+      <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-1.5">
+          <mat-icon class="text-blue-400 text-sm">integration_instructions</mat-icon>
+          <span>Internals Coverage</span>
+        </h3>
+        <p class="text-[11px] text-slate-400 leading-relaxed mb-3">
+          Our AI model translates Standard ANSI syntax into dialect-specific features (e.g. PostgreSQL's <code class="text-blue-400 font-mono font-bold">RETURNING</code>, SQLite's simplified types, SQL Server's <code class="text-blue-400 font-mono font-bold">TOP</code> pagination mechanics, and MySQL's performance index schemas).
+        </p>
+        <div class="flex flex-wrap gap-2.5 items-center font-mono text-[10px] text-slate-500">
+          <span class="px-2 py-0.5 rounded bg-slate-900/85 border border-slate-800 flex items-center gap-1.5 select-none">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span> PG
+          </span>
+          <span class="px-2 py-0.5 rounded bg-slate-900/85 border border-slate-800 flex items-center gap-1.5 select-none">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> MySQL
+          </span>
+          <span class="px-2 py-0.5 rounded bg-slate-900/85 border border-slate-800 flex items-center gap-1.5 select-none">
+            <span class="w-1.5 h-1.5 rounded-full bg-sky-400"></span> SQLite
+          </span>
+          <span class="px-2 py-0.5 rounded bg-slate-900/85 border border-slate-800 flex items-center gap-1.5 select-none">
+            <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> SQL Server
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT PANEL: Copilot Studio (col-span-7) -->
+    <section id="copilot-panel" class="lg:col-span-7 space-y-6">
+      
+      <!-- Studio Control Hub Options -->
+      <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 shadow-sm">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800/80 pb-4 mb-4 gap-3">
+          <h2 class="text-xs font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2 select-none">
+            <mat-icon class="text-blue-400">psychology</mat-icon>
+            <span>Copilot Controller</span>
+          </h2>
+          <!-- MODE SWICTH -->
+          <div class="bg-slate-900/80 p-0.5 rounded-lg border border-slate-800/80 flex gap-0.5 self-stretch sm:self-auto">
+            <button 
+              (click)="switchTab('query')"
+              class="flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-200"
+              [class.bg-blue-600]="currentMode() === 'query'"
+              [class.text-white]="currentMode() === 'query'"
+              [class.font-semibold]="currentMode() === 'query'"
+              [class.text-slate-400]="currentMode() !== 'query'"
+              [class.hover:text-slate-200]="currentMode() !== 'query'">
+              Query Studio
+            </button>
+            <button 
+              (click)="switchTab('fix')"
+              class="flex-1 sm:flex-initial px-4 py-1.5 rounded-md text-xs font-medium cursor-pointer transition-all duration-200"
+              [class.bg-blue-600]="currentMode() === 'fix'"
+              [class.text-white]="currentMode() === 'fix'"
+              [class.font-semibold]="currentMode() === 'fix'"
+              [class.text-slate-400]="currentMode() !== 'fix'"
+              [class.hover:text-slate-200]="currentMode() !== 'fix'">
+              Diagnostics
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. QUERY STUDIO TAB CONTENT -->
+        @if (currentMode() === 'query') {
+          <form [formGroup]="queryForm" (ngSubmit)="executeCopilot()" class="space-y-4">
+            
+            <div class="space-y-1.5">
+              <label for="describeQuestion" class="block text-xs text-slate-300 font-medium font-mono text-blue-400">Describe the data you need to fetch</label>
+              <textarea 
+                id="describeQuestion"
+                formControlName="question"
+                rows="4"
+                placeholder="Ask standard questions, e.g. Count the users from France who orders amount greater than 200 last month..."
+                class="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 outline-none resize-none duration-250">
+              </textarea>
+              @if (queryForm.controls.question.touched && queryForm.controls.question.invalid) {
+                <p class="text-[11px] text-red-400">Tell us what data you need to query (minimum 5 characters).</p>
+              }
+            </div>
+
+            <!-- Predefined Question Suggestions -->
+            <div class="space-y-2">
+              <span class="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">Sample Prompts:</span>
+              <div class="flex flex-col gap-1.5">
+                @for (q of questionsForPreset(); track q; let qIdx = $index) {
+                  <button 
+                    type="button" 
+                    (click)="useQuestion(q)"
+                    class="text-left py-2 px-3 bg-slate-900 hover:bg-slate-850/80 rounded-xl text-xs text-slate-300 hover:text-blue-300 border border-slate-800/80 hover:border-blue-500/25 flex gap-2 items-start transition-all duration-200 group cursor-pointer">
+                    <mat-icon class="text-sm text-slate-500 group-hover:text-blue-400 mt-0.5">help_outline</mat-icon>
+                    <span class="flex-1 leading-relaxed">{{ q }}</span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <!-- Dialect Selection -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div>
+                <label for="targetDialect" class="block text-xs text-slate-400 mb-1.5 font-mono">Target RDBMS Engine</label>
+                <select 
+                  id="targetDialect"
+                  formControlName="dialect"
+                  class="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none">
+                  <option value="postgresql">PostgreSQL</option>
+                  <option value="mysql">MySQL</option>
+                  <option value="sqlite">SQLite</option>
+                  <option value="sqlserver">SQL Server</option>
+                  <option value="standard">Standard ANSI SQL</option>
+                </select>
+              </div>
+              <div class="flex items-end">
+                <button 
+                  type="submit"
+                  [disabled]="isLoading() || queryForm.invalid"
+                  class="w-full h-10 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 font-semibold text-white text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] cursor-pointer">
+                  @if (isLoading()) {
+                    <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>CO-PILOT CONSTRUCTING...</span>
+                  } @else {
+                    <mat-icon class="text-sm font-bold">bolt</mat-icon>
+                    <span>GENERATE OPTIMIZED SQL</span>
+                  }
+                </button>
+              </div>
+            </div>
+
+          </form>
+        }
+
+        <!-- 2. ERROR DIAGNOSTICS TAB CONTENT -->
+        @if (currentMode() === 'fix') {
+          <form [formGroup]="fixForm" (ngSubmit)="executeCopilot()" class="space-y-4">
+            
+            <div class="space-y-1.5">
+              <label for="queryToFixInput" class="block text-xs text-slate-300 font-medium font-mono text-blue-400">1. Failing SQL query</label>
+              <textarea 
+                id="queryToFixInput"
+                formControlName="queryToFix"
+                rows="3"
+                placeholder="Paste the sub-optimal or broken SQL text..."
+                class="w-full p-3 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs font-mono text-white outline-none">
+              </textarea>
+            </div>
+
+            <div class="space-y-1.5">
+              <label for="errorMsgInput" class="block text-xs text-slate-300 font-semibold font-mono text-red-400">2. Database Error / Trace</label>
+              <input 
+                id="errorMsgInput"
+                type="text" 
+                formControlName="errorMsg"
+                placeholder="e.g. Column 'order_value' does not exist..."
+                class="w-full px-3 py-2 bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl text-xs font-mono text-white outline-none">
+            </div>
+
+            <!-- Diagnostics Preset Suggestions -->
+            <div class="space-y-2">
+              <span class="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">Simulate Mismatches:</span>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                @for (tmpl of diagnosticTemplates; track tmpl.name) {
+                  <button 
+                    type="button" 
+                    (click)="useDiagnosticTemplate(tmpl)"
+                    class="py-2.5 px-3 bg-slate-900 hover:bg-slate-850 border border-slate-800/80 hover:border-blue-500/20 rounded-xl text-[11px] text-slate-300 text-left transition-all flex items-center justify-between cursor-pointer group">
+                    <span class="font-medium group-hover:text-blue-300 truncate mr-2">{{ tmpl.name }}</span>
+                    <mat-icon class="text-xs text-slate-500 group-hover:text-blue-400">play_circle_filled</mat-icon>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div>
+                <label for="dialectContextSelect" class="block text-xs text-slate-400 mb-1.5 font-mono">Dialect Context</label>
+                <select 
+                  id="dialectContextSelect"
+                  formControlName="dialect"
+                  class="w-full bg-slate-950 border border-slate-800 focus:border-blue-500 rounded-xl px-3 py-2 text-xs text-white font-mono outline-none">
+                  <option value="postgresql">PostgreSQL</option>
+                  <option value="mysql">MySQL</option>
+                  <option value="sqlite">SQLite</option>
+                  <option value="sqlserver">SQL Server</option>
+                  <option value="standard">Standard ANSI SQL</option>
+                </select>
+              </div>
+              <div class="flex items-end">
+                <button 
+                  type="submit"
+                  [disabled]="isLoading() || fixForm.invalid"
+                  class="w-full h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 disabled:bg-slate-800 disabled:text-slate-600 font-semibold text-white text-xs flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] cursor-pointer">
+                  @if (isLoading()) {
+                    <span class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    <span>DIAGNOSING MISMATCH...</span>
+                  } @else {
+                    <mat-icon class="text-sm font-bold">healing</mat-icon>
+                    <span>DIAGNOSE & REWRITE SQL</span>
+                  }
+                </button>
+              </div>
+            </div>
+
+          </form>
+        }
+      </div>
+
+      <!-- LOADING RESULT STATE -->
+      @if (isLoading()) {
+        <div class="bg-slate-900/50 border border-dashed border-slate-800 rounded-xl p-10 flex flex-col items-center justify-center text-center space-y-4">
+          <div class="relative flex items-center justify-center">
+            <span class="absolute w-12 h-12 bg-blue-500/10 rounded-full animate-ping"></span>
+            <span class="absolute w-16 h-16 bg-blue-500/5 rounded-full animate-ping duration-1000"></span>
+            <div class="w-10 h-10 rounded-full bg-slate-950 border-2 border-blue-500 flex items-center justify-center animate-spin border-t-transparent">
+              <mat-icon class="text-blue-400">psychology</mat-icon>
+            </div>
+          </div>
+          <div>
+            <h4 class="text-xs font-bold uppercase tracking-widest text-slate-400">Gemini Reasoning Active</h4>
+            <p class="text-xs text-slate-500 mt-1.5 max-w-sm leading-relaxed">Evaluating joint associations, matching column definitions, checking constraints, and compiling optimized query plans.</p>
+          </div>
+        </div>
+      }
+
+      <!-- ERROR STATE -->
+      @if (apiError(); as err) {
+        <div class="bg-rose-500/5 border border-rose-500/20 text-rose-300 rounded-xl p-5 flex items-start gap-3 shadow-sm">
+          <mat-icon class="text-rose-400 mt-0.5">report_problem</mat-icon>
+          <div class="text-xs space-y-1">
+            <h4 class="font-bold uppercase tracking-widest text-rose-400">Copilot Mismatch Detected</h4>
+            <p class="leading-relaxed text-slate-300">{{ err }}</p>
+            <p class="text-[11px] text-slate-500 pt-1 font-mono">
+              The query engine uses <code class="text-slate-300 bg-slate-950 px-1 py-0.5 rounded border border-white/5">GEMINI_API_KEY</code>. Verify your setup in Settings > Secrets if this persists.
+            </p>
+          </div>
+        </div>
+      }
+
+      <!-- COPILOT RESPONSE PANEL -->
+      @if (copilotResponse(); as resp) {
+        <div class="space-y-6">
+          
+          <!-- Core Generated SQL Block -->
+          <div class="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden shadow-sm relative">
+            <div class="bg-slate-900/80 px-5 py-3.5 border-b border-slate-800/80 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                <span class="text-[11px] font-bold uppercase tracking-widest text-blue-400 font-mono"> query_gen_v1.sql </span>
+              </div>
+              <button 
+                (click)="copyToClipboard(resp.sql, 'generated-sql')"
+                class="px-2.5 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] uppercase font-mono tracking-wider font-semibold text-slate-200 hover:text-white flex items-center gap-1.5 border border-slate-700 transition-all cursor-pointer">
+                <mat-icon class="text-sm">
+                  {{ copySuccess() === 'generated-sql' ? 'check' : 'content_copy' }}
+                </mat-icon>
+                <span>{{ copySuccess() === 'generated-sql' ? 'Copied' : 'Copy' }}</span>
+              </button>
+            </div>
+
+            <!-- Interactive SQL Display -->
+            <div class="p-5 bg-slate-950/60">
+              <pre class="whitespace-pre-wrap font-mono text-xs text-slate-200 leading-relaxed overflow-x-auto select-all max-h-72 p-4 bg-slate-950 border border-slate-800/80 rounded-xl" id="sql-display-box" style="tab-size: 2;">{{ resp.sql }}</pre>
+            </div>
+            
+            @if (resp.errorAnalysis && currentMode() === 'fix') {
+              <!-- Error Fix analysis -->
+              <div class="border-t border-red-500/10 bg-red-500/5 p-4 flex gap-3 text-xs">
+                <mat-icon class="text-red-400 mt-0.5">warning</mat-icon>
+                <div>
+                  <h5 class="font-semibold text-red-300 font-mono text-xs uppercase tracking-wide">Root Cause Diagnostics:</h5>
+                  <p class="text-slate-300 mt-1 leading-relaxed">{{ resp.errorAnalysis.rootCause }}</p>
+                  <p class="text-[11px] text-emerald-400 mt-1 italic">{{ resp.errorAnalysis.fixedStatus }}</p>
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Clause-by-Clause explanation -->
+          <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3">
+            <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 font-mono flex items-center gap-1.5 select-none">
+              <mat-icon class="text-blue-400 text-base leading-none">menu_book</mat-icon>
+              <span>Query Formulation Breakdown</span>
+            </h3>
+            <p class="text-xs text-slate-300 leading-relaxed font-sans whitespace-pre-wrap">{{ resp.explanation }}</p>
+            
+            @if (resp.alternatives) {
+              <div class="pt-3 border-t border-slate-800/80 mt-3">
+                <h4 class="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500">Considered Alternatives:</h4>
+                <p class="text-xs text-slate-400 italic mt-1 leading-relaxed">{{ resp.alternatives }}</p>
+              </div>
+            }
+          </div>
+
+          <!-- Schema Awareness parsed relations -->
+          @if (resp.interpretedRelationships && resp.interpretedRelationships.length > 0) {
+            <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 shadow-sm space-y-3">
+              <h3 class="text-xs font-bold uppercase tracking-widest text-slate-500 font-mono flex items-center gap-1.5 select-none">
+                <mat-icon class="text-blue-400 text-base leading-none">link</mat-icon>
+                <span>Relationship Map</span>
+              </h3>
+              <div class="flex flex-col gap-2 pt-1 font-mono text-xs text-slate-300">
+                @for (rel of resp.interpretedRelationships; track rel) {
+                  <div class="flex items-center gap-3">
+                    <div class="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                    <div class="flex-1">
+                      <div class="text-[11px] font-mono">{{ rel }}</div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Optimization Panel: Table scans warning & suggestions -->
+          <div [class]="resp.optimisation.hasTableScanWarning 
+                 ? 'bg-slate-900/50 border border-orange-500/20 rounded-xl p-5 shadow-sm space-y-4 relative overflow-hidden' 
+                 : 'bg-slate-900/50 border border-slate-800 rounded-xl p-5 shadow-sm space-y-4 relative overflow-hidden'">
+            
+            <!-- Glowing indicator dot for table scan warnings -->
+            @if (resp.optimisation.hasTableScanWarning) {
+              <div class="absolute top-0 right-0 p-3">
+                <div class="w-2.5 h-2.5 rounded-full bg-orange-500 shadow-[0_0_10px_rgba(249,115,22,0.6)] animate-pulse"></div>
+              </div>
+            }
+
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 [class]="resp.optimisation.hasTableScanWarning 
+                     ? 'text-xs font-bold uppercase tracking-widest text-orange-500 font-mono flex items-center gap-1.5' 
+                     : 'text-xs font-bold uppercase tracking-widest text-slate-500 font-mono flex items-center gap-1.5'">
+                <mat-icon [class]="resp.optimisation.hasTableScanWarning ? 'text-orange-500 text-base' : 'text-blue-400 text-base'">speed</mat-icon>
+                <span>{{ resp.optimisation.hasTableScanWarning ? 'Optimization Alert' : 'Performance Engine' }}</span>
+              </h3>
+
+              @if (resp.optimisation.hasTableScanWarning) {
+                <span class="hidden sm:inline-flex px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 text-[9px] font-mono font-semibold items-center gap-1 uppercase tracking-wider">
+                  Table Scan Mismatch
+                </span>
+              } @else {
+                <span class="hidden sm:inline-flex px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] font-mono font-semibold items-center gap-1 uppercase tracking-wider">
+                  Optimal Scan
+                </span>
+              }
+            </div>
+
+            <p class="text-xs text-slate-300 leading-relaxed font-sans">{{ resp.optimisation.warningDetails }}</p>
+
+            <div class="space-y-2 pt-2">
+              <div class="text-[9px] uppercase tracking-widest font-bold text-slate-500 font-mono">Suggested Index Tuning:</div>
+              
+              @if (resp.optimisation.indexes && resp.optimisation.indexes.length > 0) {
+                <div class="grid grid-cols-1 gap-3">
+                  @for (idx of resp.optimisation.indexes; track idx.name; let ii = $index) {
+                    <div class="p-4 bg-slate-950/60 rounded-xl border border-slate-800/80 space-y-2 hover:border-slate-800 transition-colors">
+                      <div class="flex items-center justify-between">
+                        <span class="text-xs font-mono text-blue-400 font-semibold flex items-center gap-1">
+                          <mat-icon class="text-sm">offline_bolt</mat-icon> {{ idx.name }}
+                        </span>
+                        <button 
+                          (click)="copyToClipboard(idx.statement, 'statement-' + ii)"
+                          class="text-[9px] uppercase tracking-wider font-semibold hover:text-white text-slate-400 font-mono bg-slate-900 border border-slate-800 px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer">
+                          <mat-icon class="text-xs">
+                            {{ copySuccess() === 'statement-' + ii ? 'check' : 'content_copy' }}
+                          </mat-icon>
+                          <span>{{ copySuccess() === 'statement-' + ii ? 'Copied' : 'Copy' }}</span>
+                        </button>
+                      </div>
+                      <pre class="p-3 bg-black/40 rounded text-[10.5px] font-mono text-emerald-400 select-all border border-white/5 overflow-x-auto">{{ idx.statement }}</pre>
+                      <p class="text-[11px] text-slate-400 leading-normal">{{ idx.explanation }}</p>
+                    </div>
+                  }
+                </div>
+              } @else {
+                <p class="text-xs italic text-slate-500">Zero database tuning required. Schema complies with physical scan plans.</p>
+              }
+            </div>
+
+          </div>
+
+        </div>
+      }
+
+    </section>
+
+  </main>
+
+  <!-- Ground Footer Details -->
+  <footer class="h-10 border-t border-slate-800 px-6 flex items-center justify-between bg-slate-950 shrink-0 text-[10px] font-mono text-slate-600 mt-12">
+    <div class="max-w-7xl w-full mx-auto flex items-center justify-between">
+      <div class="flex gap-4">
+        <span>Session ID: pg-bento-studio</span>
+        <span>Version: v0.5-beta</span>
+      </div>
+      <div class="flex gap-4">
+        <span class="text-blue-500 uppercase">Ready</span>
+      </div>
+    </div>
+  </footer>
+
+</div>

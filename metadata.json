@@ -1,0 +1,6 @@
+{
+  "name": "Database Copilot",
+  "description": "An expert relational database assistant featuring query generation, optimization, schema modeling, and SQL coaching",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
