@@ -267,6 +267,8 @@ export class App {
   showAddColumnModal = signal<boolean>(false);
   showAddDatasetModal = signal<boolean>(false);
   showAddQuestionInput = signal<boolean>(false);
+  datasetPendingDelete = signal<Dataset | null>(null);
+  datasetRemoveWarning = signal<string | null>(null);
   copySuccess = signal<string | null>(null);
 
   // Dynamic UI variables
@@ -413,23 +415,46 @@ export class App {
 
     const list = this.datasets();
     if (list.length <= 1) {
-      alert('You must have at least one active dataset.');
+      this.datasetRemoveWarning.set('You must have at least one active dataset to keep using the Database Copilot.');
       return;
     }
 
     const targetDataset = list.find(d => d.id === id);
-    const label = targetDataset?.label || id;
-    const confirmDelete = confirm(`Are you sure you want to delete the dataset "${label}"?`);
-    if (!confirmDelete) return;
+    if (targetDataset) {
+      this.datasetPendingDelete.set(targetDataset);
+      this.datasetRemoveWarning.set(null);
+    }
+  }
 
-    const updated = list.filter(d => d.id !== id);
+  // Handle actual confirm delete database action
+  confirmRemoveDataset() {
+    const target = this.datasetPendingDelete();
+    if (!target) return;
+
+    const list = this.datasets();
+    if (list.length <= 1) {
+      this.datasetRemoveWarning.set('You must have at least one active dataset.');
+      this.datasetPendingDelete.set(null);
+      return;
+    }
+
+    const updated = list.filter(d => d.id !== target.id);
     this.datasets.set(updated);
     this.saveDatasetsToStorage(updated);
 
     // If active preset has been deleted, switch to the first remaining one
-    if (this.activePreset() === id) {
+    if (this.activePreset() === target.id) {
       this.onPresetChange(updated[0].id);
     }
+
+    this.datasetPendingDelete.set(null);
+    this.datasetRemoveWarning.set(null);
+  }
+
+  // Handle cancel database delete action
+  cancelRemoveDataset() {
+    this.datasetPendingDelete.set(null);
+    this.datasetRemoveWarning.set(null);
   }
 
   // Add custom template question inside the actively selected dataset
