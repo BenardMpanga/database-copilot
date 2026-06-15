@@ -6,7 +6,7 @@ import {
 } from '@angular/ssr/node';
 import express from 'express';
 import {join} from 'node:path';
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, GenerateContentParameters, GenerateContentResponse } from "@google/genai";
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
@@ -47,6 +47,81 @@ interface CopilotTableColumn {
 interface CopilotTable {
   name: string;
   columns?: CopilotTableColumn[];
+}
+
+/**
+ * Resilient helper function to execute generateContent with automatic exponential backoff retries 
+ * and fallback models in the event of Google API 503/429 transient service loads.
+ */
+async function generateContentWithFallback(
+  ai: GoogleGenAI,
+  params: GenerateContentParameters,
+  maxRetries = 3,
+  delayMs = 1500
+): Promise<GenerateContentResponse> {
+  const modelsToTry = [
+    'gemini-3.5-flash',
+    'gemini-flash-latest',
+    'gemini-3.1-flash-lite'
+  ];
+
+  let lastError: Error | null = null;
+
+  for (const model of modelsToTry) {
+    let attempt = 0;
+    while (attempt < maxRetries) {
+      try {
+        console.log(`[DatabaseCopilot-API] Requesting GenAI with model: ${model} (attempt ${attempt + 1}/${maxRetries})`);
+        
+        // Always override the target model to the current candidate
+        params.model = model;
+        
+        const response = await ai.models.generateContent(params);
+        console.log(`[DatabaseCopilot-API] Success with model: ${model}`);
+        return response;
+      } catch (error: unknown) {
+        attempt++;
+        const castError = error as Error;
+        lastError = castError;
+        
+        const errMessage = castError?.message || '';
+        const errStatus = (castError as { status?: number; statusCode?: number })?.status || 
+                          (castError as { status?: number; statusCode?: number })?.statusCode || 0;
+        
+        // Identify classic transient clusters: 503 (unavailable), 429 (rate limits), 500 (internal retryable), or high demand message cues
+        const isTransient = 
+          errStatus === 503 || 
+          errStatus === 429 || 
+          errStatus === 500 ||
+          errMessage.includes('503') || 
+          errMessage.includes('500') ||
+          errMessage.includes('429') ||
+          errMessage.includes('UNAVAILABLE') ||
+          errMessage.includes('temporary') ||
+          errMessage.includes('high demand') ||
+          errMessage.includes('overloaded') ||
+          errMessage.includes('RESOURCE_EXHAUSTED');
+
+        if (isTransient && attempt < maxRetries) {
+          const waitTime = delayMs * Math.pow(2, attempt - 1);
+          console.warn(`[DatabaseCopilot-API] Transient error on '${model}' (${errMessage}). Retrying in ${waitTime}ms...`);
+          await new Promise((resolve) => setTimeout(resolve, waitTime));
+          continue;
+        }
+
+        // For non-transient, or if retry budget is exhausted, move to the next model in sequence
+        console.error(`[DatabaseCopilot-API] Model '${model}' failed/exhausted. Error:`, errMessage);
+        break;
+      }
+    }
+  }
+
+  // If both retry budgets and fallback list are fully exhausted, gracefully bubble up a clear humanized message
+  const details = lastError?.message || 'High spikes in demand';
+  throw new Error(
+    `DatabaseCopilot is currently experiencing extremely high demand on all backend channels. ` +
+    `Gemini has returned a temporary unavailable status (503). Reference details: ${details}`
+  );
 }
 
 // DatabaseCopilot Core API endpoint
@@ -91,7 +166,7 @@ Please translate this query accurately to ${dialect}. Follow expert sql optimiza
 
     const ai = getGeminiClient();
 
-    const response = await ai.models.generateContent({
+    const response = await generateContentWithFallback(ai, {
       model: 'gemini-3.5-flash',
       contents: promptContext,
       config: {
